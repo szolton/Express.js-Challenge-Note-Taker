@@ -13,29 +13,27 @@ if (window.location.pathname === '/notes') {
   saveNoteBtn = document.querySelector('.save-note');
   newNoteBtn = document.querySelector('.new-note');
   clearBtn = document.querySelector('.clear-btn');
-  noteList = document.querySelectorAll('.list-container .list-group');
+  noteList = document.querySelector('.list-group');
 }
 
-// Show an element
 const show = (elem) => {
   elem.style.display = 'inline';
 };
 
-// Hide an element
 const hide = (elem) => {
   elem.style.display = 'none';
 };
 
-// activeNote is used to keep track of the note in the textarea
 let activeNote = {};
-// end points you should account for
+
 const getNotes = () =>
-  fetch('/api/notes', {
+  fetch('http://localhost:3000/api/notes', { // Use the full URL
     method: 'GET',
     headers: {
       'Content-Type': 'application/json'
     }
   });
+
 
 const saveNote = (note) =>
   fetch('/api/notes', {
@@ -45,7 +43,6 @@ const saveNote = (note) =>
     },
     body: JSON.stringify(note)
   });
-
 
 const deleteNote = (id) =>
   fetch(`/api/notes/${id}`, {
@@ -80,44 +77,40 @@ const handleNoteSave = () => {
     text: noteText.value
   };
   saveNote(newNote).then(() => {
-    getAndRenderNotes();
+    getAndRenderNotes(); // <-- Add this line to render the new note
     renderActiveNote();
   });
 };
 
-// Delete the clicked note
 const handleNoteDelete = (e) => {
-  // Prevents the click listener for the list from being called when the button inside of it is clicked
   e.stopPropagation();
-
-  const note = e.target;
-  const noteId = JSON.parse(note.parentElement.getAttribute('data-note')).id;
-
+  const noteId = JSON.parse(e.target.parentElement.getAttribute('data-note')).id;
+  if (!noteId) {
+    console.error('Note id is undefined');
+    return;
+  }
   if (activeNote.id === noteId) {
     activeNote = {};
   }
-
   deleteNote(noteId).then(() => {
     getAndRenderNotes();
     renderActiveNote();
   });
 };
 
-// Sets the activeNote and displays it
+
 const handleNoteView = (e) => {
   e.preventDefault();
   activeNote = JSON.parse(e.target.parentElement.getAttribute('data-note'));
   renderActiveNote();
 };
 
-// Sets the activeNote to and empty object and allows the user to enter a new note
 const handleNewNoteView = (e) => {
   activeNote = {};
   show(clearBtn);
   renderActiveNote();
 };
 
-// Renders the appropriate buttons based on the state of the form
 const handleRenderBtns = () => {
   show(clearBtn);
   if (!noteTitle.value.trim() && !noteText.value.trim()) {
@@ -129,19 +122,19 @@ const handleRenderBtns = () => {
   }
 };
 
-// Render the list of note titles
 const renderNoteList = async (notes) => {
+  if (!notes) return;
   let jsonNotes = await notes.json();
   if (window.location.pathname === '/notes') {
-    noteList.forEach((el) => (el.innerHTML = ''));
+    noteList.innerHTML = '';
   }
 
   let noteListItems = [];
 
-  // Returns HTML element with or without a delete button
-  const createLi = (text, delBtn = true) => {
+  const createLi = (text, id, delBtn = true) => {
     const liEl = document.createElement('li');
     liEl.classList.add('list-group-item');
+    liEl.id = id;
 
     const spanEl = document.createElement('span');
     spanEl.classList.add('list-item-title');
@@ -172,19 +165,24 @@ const renderNoteList = async (notes) => {
   }
 
   jsonNotes.forEach((note) => {
-    const li = createLi(note.title);
+    const li = createLi(note.title, note.id);
     li.dataset.note = JSON.stringify(note);
 
     noteListItems.push(li);
   });
 
   if (window.location.pathname === '/notes') {
-    noteListItems.forEach((note) => noteList[0].append(note));
+    noteListItems.forEach((note) => noteList.append(note));
   }
 };
 
-// Gets notes from the db and renders them to the sidebar
-const getAndRenderNotes = () => getNotes().then(renderNoteList);
+const getAndRenderNotes = () => {
+  getNotes()
+    .then(renderNoteList)
+    .catch((error) => {
+      console.error('Failed to fetch notes:', error);
+    });
+};
 
 document.addEventListener('DOMContentLoaded', () => {
   if (window.location.pathname === '/notes') {

@@ -1,66 +1,66 @@
 const express = require('express');
 const path = require('path');
 const fs = require('fs');
-const exp = require('constants');
-// we CREATE an EXPRESS INSTANCE
+
 const app = express();
 const PORT = process.env.PORT || 3000;
 
-// Express Config --> Middleware 
+// Middleware to allow cross-origin requests
+app.use((req, res, next) => {
+  res.setHeader('Access-Control-Allow-Origin', '*');
+  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, DELETE');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
+  next();
+});
+
 app.use(express.urlencoded({ extended: true }));
 app.use(express.json());
-// Serve static files from the 'public' directory
 app.use(express.static('public'));
 
-// Explicitly set the MIME type for JavaScript files
-
-/*
-app.get('/assets/js/index.js', (req, res) => {
-  res.type('application/javascript');
-  res.sendFile(path.join(__dirname, 'public', 'assets', 'js', 'index.js'));
-});
-*/
-
-// Serve your HTML file
 app.get('/api/notes', (req, res) => {
-   // console.log('Incoming Request OBJECT: ', req)
-    // what are supposed to do(?)
-
-    // we want to request/find the NOTES DATASET
-    fs.readFile('db/db.json', 'utf8', function(error, data) {
-        if(error) {
-            console.log("Error: ", error);
-            // return;
-        }
-        console.log('Data: ', data)
-        console.log('data type: ', typeof data)
-
-        // RESPONDE to the INCOMING REQUEST
-        res.json(JSON.parse(data))
-    });
-    // we CAN parse or filter/sort ACT ON the dataset
-    
-
+  fs.readFile('db/db.json', 'utf8', function(error, data) {
+    if (error) {
+      console.log("Error: ", error);
+      res.status(500).send("Internal Server Error");
+      return;
+    }
+    res.json(JSON.parse(data))
+  });
 });
 
 app.post('/api/notes', (req, res) => {
-    console.log("Incoming Data BODY: ", req.body)
-    console.log("Type of BODY: ", typeof req.body)
-})
+  fs.readFile('db/db.json', 'utf8', function(error, data) {
+    if (error) {
+      console.log("Error: ", error);
+      res.status(500).send("Internal Server Error");
+      return;
+    }
 
+    let notes = JSON.parse(data);
+    const newNote = req.body;
+    newNote.id = notes.length + 1; // Generate a unique ID for the new note
+    notes.push(newNote);
+
+    fs.writeFile('db/db.json', JSON.stringify(notes), 'utf8', function(err) {
+      if (err) {
+        console.log("Error: ", err);
+        res.status(500).send("Internal Server Error");
+        return;
+      }
+
+      res.sendStatus(200); // Send a success status
+    }); 
+  });
+});
 
 app.get('/notes', (req, res) => {
-  //res.sendFile(path.join(__dirname, 'public', 'notes.html'));
-  res.sendFile(path.join(__dirname, './public/notes.html'));
+  res.sendFile(path.join(__dirname, 'public', 'notes.html'));
 });
 
-app.get('/', (req, res) => {
-  //res.sendFile(path.join(__dirname, 'public', 'index.html'));
-  res.sendFile(path.join(__dirname, './public/index.html'));
+app.get('*', (req, res) => {
+  res.sendFile(path.join(__dirname, 'public', 'index.html'));
 });
 
-
-// Start the server
 app.listen(PORT, () => {
   console.log(`Server is running on http://localhost:${PORT}`);
 });
