@@ -106,16 +106,6 @@ const handleNoteDelete = (e) => {
     return;
   }
 
-  // Check if the note exists in your data
-  const noteExists = notes.some(note => note.id === noteId);
-  if (!noteExists) {
-    console.error('Note with id', noteId, 'does not exist');
-    return;
-  }
-
-  if (activeNote.id === noteId) {
-    activeNote = {};
-  }
   deleteNote(noteId).then(() => {
     getAndRenderNotes();
     renderActiveNote();
