@@ -27,22 +27,34 @@ const hide = (elem) => {
 let activeNote = {};
 
 const getNotes = () =>
-  fetch('http://localhost:3000/api/notes', { // Use the full URL
+  fetch('http://localhost:3000/api/notes', {
     method: 'GET',
     headers: {
       'Content-Type': 'application/json'
     }
   });
 
-
-const saveNote = (note) =>
-  fetch('/api/notes', {
+  const saveNote = (note) =>
+  fetch('http://localhost:3000/api/notes', {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json'
     },
     body: JSON.stringify(note)
+  })
+  .then(response => {
+    if (response.status === 200 || response.status === 201) {
+      console.log('Note saved successfully');
+    } else {
+      throw new Error('Failed to save note');
+    }
+  })
+  .catch(error => {
+    console.error('Failed to save note:', error);
+    throw error; // Rethrow the error to propagate it further
   });
+
+
 
 const deleteNote = (id) =>
   fetch(`/api/notes/${id}`, {
@@ -76,19 +88,31 @@ const handleNoteSave = () => {
     title: noteTitle.value,
     text: noteText.value
   };
-  saveNote(newNote).then(() => {
-    getAndRenderNotes(); // <-- Add this line to render the new note
-    renderActiveNote();
-  });
+  saveNote(newNote)
+    .then(() => {
+      getAndRenderNotes();
+      renderActiveNote();
+    })
+    .catch(error => {
+      console.error('Failed to save note:', error);
+    });
 };
 
 const handleNoteDelete = (e) => {
   e.stopPropagation();
-  const noteId = JSON.parse(e.target.parentElement.getAttribute('data-note')).id;
+  const noteId = JSON.parse(e.target.closest('li').getAttribute('data-note')).id;
   if (!noteId) {
     console.error('Note id is undefined');
     return;
   }
+
+  // Check if the note exists in your data
+  const noteExists = notes.some(note => note.id === noteId);
+  if (!noteExists) {
+    console.error('Note with id', noteId, 'does not exist');
+    return;
+  }
+
   if (activeNote.id === noteId) {
     activeNote = {};
   }
